@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Trends Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+        
+        <!-- Header -->
+        <header class="bg-slate-800 text-white p-6">
+            <h1 class="text-2xl font-bold tracking-tight">Google Health Trends Explorer</h1>
+            <p class="text-sm text-slate-300 mt-1">Hybrid Secure API Gateway</p>
+        </header>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-slate-200 bg-slate-100">
+            <button onclick="switchTab('totp')" id="tab-totp" class="flex-1 py-3 px-4 text-sm font-bold bg-white text-blue-600 border-b-2 border-blue-600 transition">
+                🔒 Admin Login (Authenticator)
+            </button>
+            <button onclick="switchTab('byok')" id="tab-byok" class="flex-1 py-3 px-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition">
+                🔑 Public Use (Bring Your Own Key)
+            </button>
+        </div>
+
+        <div class="p-6">
+            <div class="grid grid-cols-1 gap-5 mb-6">
+                
+                <!-- DYNAMIC INPUT AREA -->
+                <div id="auth-section" class="bg-blue-50 p-4 rounded-xl border border-blue-100 transition-all">
+                    <!-- TOTP Input (Default) -->
+                    <div id="input-totp">
+                        <label class="block text-sm font-bold text-blue-900 mb-2">Authenticator Code</label>
+                        <input type="text" id="totpCode" maxlength="6" placeholder="000000" class="w-full md:w-1/2 border border-blue-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono tracking-[0.5em] text-2xl text-center bg-white shadow-inner outline-none">
+                        <p class="text-xs text-blue-700 mt-2">Uses the server's hidden API key.</p>
+                    </div>
+
+                    <!-- BYOK Input (Hidden by default) -->
+                    <div id="input-byok" class="hidden">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Your Google API Key</label>
+                        <input type="password" id="userApiKey" placeholder="AIzaSy..." class="w-full border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm bg-white shadow-inner outline-none">
+                        <p class="text-xs text-slate-500 mt-2">Your key is never stored. It is sent securely to Google.</p>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 my-2">
+
+                <!-- Search Parameters -->
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Search Terms (comma separated)</label>
+                    <input type="text" id="terms" value="fever, cough" class="w-full border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Start Date</label>
+                        <input type="date" id="start" value="2025-01-01" class="w-full border border-slate-300 p-3 rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">End Date</label>
+                        <input type="date" id="end" value="2025-03-01" class="w-full border border-slate-300 p-3 rounded-lg outline-none">
+                    </div>
+                </div>
+
+                <button onclick="runQuery()" id="btn" class="mt-2 w-full bg-slate-800 text-white font-bold py-4 rounded-xl hover:bg-slate-900 transition shadow flex justify-center items-center gap-2">
+                    Fetch Data
+                </button>
+            </div>
+
+            <!-- Output Area -->
+            <div id="status" class="mb-4 text-sm font-bold p-4 hidden rounded-lg"></div>
+            <div class="bg-slate-900 rounded-xl shadow-inner overflow-hidden flex flex-col h-[400px]">
+                <div class="bg-slate-800 px-4 py-2 flex justify-between items-center">
+                    <span class="text-slate-400 text-xs font-mono uppercase tracking-widest">JSON Response</span>
+                </div>
+                <pre id="output" class="p-6 text-emerald-400 font-mono text-sm overflow-auto flex-grow italic text-slate-500">// Waiting for query...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // *** CRITICAL: REPLACE THIS WITH YOUR WORKER URL ***
+        const WORKER_URL = "https://YOUR-WORKER-URL.workers.dev";
+        
+        let currentMode = 'totp'; // Tracks which tab is active
+
+        function switchTab(mode) {
+            currentMode = mode;
+            const tabTotp = document.getElementById('tab-totp');
+            const tabByok = document.getElementById('tab-byok');
+            const inputTotp = document.getElementById('input-totp');
+            const inputByok = document.getElementById('input-byok');
+            const authSection = document.getElementById('auth-section');
+
+            if (mode === 'totp') {
+                // Style Tabs
+                tabTotp.className = "flex-1 py-3 px-4 text-sm font-bold bg-white text-blue-600 border-b-2 border-blue-600 transition";
+                tabByok.className = "flex-1 py-3 px-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition";
+                // Show Inputs
+                inputTotp.classList.remove('hidden');
+                inputByok.classList.add('hidden');
+                authSection.className = "bg-blue-50 p-4 rounded-xl border border-blue-100 transition-all";
+            } else {
+                // Style Tabs
+                tabByok.className = "flex-1 py-3 px-4 text-sm font-bold bg-white text-slate-800 border-b-2 border-slate-800 transition";
+                tabTotp.className = "flex-1 py-3 px-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition";
+                // Show Inputs
+                inputByok.classList.remove('hidden');
+                inputTotp.classList.add('hidden');
+                authSection.className = "bg-slate-50 p-4 rounded-xl border border-slate-200 transition-all";
+            }
+        }
+
+        async function runQuery() {
+            const btn = document.getElementById('btn');
+            const output = document.getElementById('output');
+            const status = document.getElementById('status');
+            
+            // Prepare Custom Headers based on active tab
+            let requestHeaders = { 'Content-Type': 'application/json' };
+            
+            if (currentMode === 'totp') {
+                const code = document.getElementById('totpCode').value.replace(/\s+/g, '');
+                if (code.length !== 6 || isNaN(code)) {
+                    showStatus("Please enter a valid 6-digit Authenticator code.", "error");
+                    return;
+                }
+                requestHeaders['Authorization'] = `Bearer ${code}`;
+            } else {
+                const key = document.getElementById('userApiKey').value.trim();
+                if (!key) {
+                    showStatus("Please enter your Google API Key.", "error");
+                    return;
+                }
+                requestHeaders['X-API-Key'] = key;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = "Fetching Data...";
+            status.classList.add('hidden');
+            output.classList.remove('text-slate-500');
+            output.innerText = "// Connecting to Gateway...";
+
+            const payload = {
+                terms: document.getElementById('terms').value,
+                start: document.getElementById('start').value,
+                end: document.getElementById('end').value,
+                resolution: "week",
+                geo: "US"
+            };
+
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: requestHeaders,
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                output.innerText = JSON.stringify(data, null, 4);
+
+                if (response.ok) {
+                    showStatus(`Success: Data fetched via ${currentMode === 'totp' ? 'Authenticator' : 'Personal API Key'}.`, "success");
+                    if(currentMode === 'totp') document.getElementById('totpCode').value = '';
+                } else {
+                    showStatus("API Error: " + (data.error || "Request failed"), "error");
+                }
+            } catch (err) {
+                output.innerText = "";
+                showStatus("Network Error: Could not reach the Gateway.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "Fetch Data";
+            }
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('status');
+            el.innerText = msg;
+            el.className = type === 'success' 
+                ? "mb-4 text-sm font-bold p-4 rounded-lg bg-emerald-100 text-emerald-800 block"
+                : "mb-4 text-sm font-bold p-4 rounded-lg bg-red-100 text-red-800 block";
+        }
+    </script>
+</body>
+</html>
