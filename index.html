@@ -3,114 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Trends Dashboard</title>
+    <title>Health Trends Explore</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Chart.js for plotting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        body { background-color: #f8f9fa; color: #202124; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    </style>
 </head>
-<body class="bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
+<body class="min-h-screen flex flex-col">
 
-    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <div class="text-xl font-medium text-gray-600">
+                <span class="text-blue-600 font-bold">Health</span> Trends <span class="text-sm font-normal text-gray-400 border border-gray-200 rounded px-1">Explorer</span>
+            </div>
+        </div>
         
-        <!-- Header -->
-        <header class="bg-slate-800 text-white p-6">
-            <h1 class="text-2xl font-bold tracking-tight">Google Health Trends Explorer</h1>
-            <p class="text-sm text-slate-300 mt-1">Hybrid Secure API Gateway</p>
-        </header>
-
-        <!-- Tabs -->
-        <div class="flex border-b border-slate-200 bg-slate-100">
-            <button onclick="switchTab('totp')" id="tab-totp" class="flex-1 py-3 px-4 text-sm font-bold bg-white text-blue-600 border-b-2 border-blue-600 transition">
-                🔒 Admin Login (Authenticator)
-            </button>
-            <button onclick="switchTab('byok')" id="tab-byok" class="flex-1 py-3 px-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition">
-                🔑 Public Use (Bring Your Own Key)
+        <!-- Auth Settings Toggle -->
+        <div class="relative">
+            <button onclick="toggleAuthPanel()" class="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition">
+                <span>⚙️ API Settings</span>
             </button>
         </div>
+    </header>
 
-        <div class="p-6">
-            <div class="grid grid-cols-1 gap-5 mb-6">
-                
-                <!-- DYNAMIC INPUT AREA -->
-                <div id="auth-section" class="bg-blue-50 p-4 rounded-xl border border-blue-100 transition-all">
-                    <!-- TOTP Input (Default) -->
-                    <div id="input-totp">
-                        <label class="block text-sm font-bold text-blue-900 mb-2">Authenticator Code</label>
-                        <input type="text" id="totpCode" maxlength="6" placeholder="000000" class="w-full md:w-1/2 border border-blue-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono tracking-[0.5em] text-2xl text-center bg-white shadow-inner outline-none">
-                        <p class="text-xs text-blue-700 mt-2">Uses the server's hidden API key.</p>
-                    </div>
-
-                    <!-- BYOK Input (Hidden by default) -->
-                    <div id="input-byok" class="hidden">
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Your Google API Key</label>
-                        <input type="password" id="userApiKey" placeholder="AIzaSy..." class="w-full border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm bg-white shadow-inner outline-none">
-                        <p class="text-xs text-slate-500 mt-2">Your key is never stored. It is sent securely to Google.</p>
-                    </div>
-                </div>
-
-                <hr class="border-slate-100 my-2">
-
-                <!-- Search Parameters -->
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Search Terms (comma separated)</label>
-                    <input type="text" id="terms" value="fever, cough" class="w-full border border-slate-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Start Date</label>
-                        <input type="date" id="start" value="2025-01-01" class="w-full border border-slate-300 p-3 rounded-lg outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">End Date</label>
-                        <input type="date" id="end" value="2025-03-01" class="w-full border border-slate-300 p-3 rounded-lg outline-none">
-                    </div>
-                </div>
-
-                <button onclick="runQuery()" id="btn" class="mt-2 w-full bg-slate-800 text-white font-bold py-4 rounded-xl hover:bg-slate-900 transition shadow flex justify-center items-center gap-2">
-                    Fetch Data
-                </button>
+    <!-- Hidden Auth Panel (Slides down) -->
+    <div id="authPanel" class="hidden bg-white border-b border-gray-200 p-6 shadow-sm">
+        <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="p-4 border border-blue-100 bg-blue-50 rounded-lg">
+                <h3 class="font-bold text-blue-800 mb-2">🔒 Admin (Authenticator)</h3>
+                <input type="text" id="totpCode" maxlength="6" placeholder="6-Digit TOTP Code" class="w-full border border-blue-200 p-2 rounded focus:ring-2 focus:ring-blue-500 font-mono tracking-widest outline-none">
             </div>
-
-            <!-- Output Area -->
-            <div id="status" class="mb-4 text-sm font-bold p-4 hidden rounded-lg"></div>
-            <div class="bg-slate-900 rounded-xl shadow-inner overflow-hidden flex flex-col h-[400px]">
-                <div class="bg-slate-800 px-4 py-2 flex justify-between items-center">
-                    <span class="text-slate-400 text-xs font-mono uppercase tracking-widest">JSON Response</span>
-                </div>
-                <pre id="output" class="p-6 text-emerald-400 font-mono text-sm overflow-auto flex-grow italic text-slate-500">// Waiting for query...</pre>
+            <div class="p-4 border border-gray-200 bg-gray-50 rounded-lg">
+                <h3 class="font-bold text-gray-700 mb-2">🔑 Public (API Key)</h3>
+                <input type="password" id="userApiKey" placeholder="AIzaSy..." class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-gray-400 font-mono text-sm outline-none">
             </div>
         </div>
+        <p class="text-center text-xs text-gray-500 mt-4">Provide ONE of the above to authenticate your query.</p>
     </div>
 
+    <!-- Main Content -->
+    <main class="flex-grow p-4 md:p-8 max-w-6xl mx-auto w-full">
+        
+        <!-- Google Trends Style Search Bar -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-grow w-full">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Search Terms (Compare up to 5)</label>
+                    <input type="text" id="terms" value="chickenpox, flu" class="w-full text-xl border-b-2 border-blue-500 focus:border-blue-700 p-2 outline-none bg-transparent transition-colors">
+                </div>
+                <div class="w-full md:w-48">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Location</label>
+                    <input type="text" id="geo" value="GB" class="w-full border-b border-gray-300 focus:border-blue-500 p-2 outline-none bg-transparent">
+                </div>
+                <div class="w-full md:w-32">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Start</label>
+                    <input type="date" id="start" value="2023-01-01" class="w-full border-b border-gray-300 focus:border-blue-500 p-2 outline-none bg-transparent text-sm">
+                </div>
+                <div class="w-full md:w-32">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">End</label>
+                    <input type="date" id="end" value="2024-01-01" class="w-full border-b border-gray-300 focus:border-blue-500 p-2 outline-none bg-transparent text-sm">
+                </div>
+                <button onclick="runQuery()" id="btn" class="w-full md:w-auto bg-blue-600 text-white font-medium py-2 px-6 rounded-full hover:bg-blue-700 shadow-sm transition-colors whitespace-nowrap">
+                    Explore
+                </button>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div id="status" class="hidden mb-4 p-3 text-sm font-medium rounded-md"></div>
+
+        <!-- Chart Container -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-medium text-gray-800 mb-4">Interest over time</h2>
+            <div class="w-full h-[400px]">
+                <canvas id="trendsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Raw Data Toggle -->
+        <details class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden cursor-pointer">
+            <summary class="p-4 font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition outline-none">
+                View Raw JSON Response
+            </summary>
+            <div class="border-t border-gray-200">
+                <pre id="output" class="p-4 text-xs font-mono text-gray-600 overflow-auto max-h-96">Run a query to see data...</pre>
+            </div>
+        </details>
+
+    </main>
+
     <script>
+        // *** CRITICAL: REPLACE THIS WITH YOUR WORKER URL ***
         const WORKER_URL = "https://trends.pwlewis.workers.dev";
         
-        let currentMode = 'totp'; // Tracks which tab is active
+        let trendsChart = null;
+        
+        // Google Trends standard colors
+        const chartColors = ['#4285F4', '#DB4437', '#F4B400', '#0F9D58', '#AB47BC', '#00ACC1'];
 
-        function switchTab(mode) {
-            currentMode = mode;
-            const tabTotp = document.getElementById('tab-totp');
-            const tabByok = document.getElementById('tab-byok');
-            const inputTotp = document.getElementById('input-totp');
-            const inputByok = document.getElementById('input-byok');
-            const authSection = document.getElementById('auth-section');
-
-            if (mode === 'totp') {
-                // Style Tabs
-                tabTotp.className = "flex-1 py-3 px-4 text-sm font-bold bg-white text-blue-600 border-b-2 border-blue-600 transition";
-                tabByok.className = "flex-1 py-3 px-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition";
-                // Show Inputs
-                inputTotp.classList.remove('hidden');
-                inputByok.classList.add('hidden');
-                authSection.className = "bg-blue-50 p-4 rounded-xl border border-blue-100 transition-all";
-            } else {
-                // Style Tabs
-                tabByok.className = "flex-1 py-3 px-4 text-sm font-bold bg-white text-slate-800 border-b-2 border-slate-800 transition";
-                tabTotp.className = "flex-1 py-3 px-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition";
-                // Show Inputs
-                inputByok.classList.remove('hidden');
-                inputTotp.classList.add('hidden');
-                authSection.className = "bg-slate-50 p-4 rounded-xl border border-slate-200 transition-all";
-            }
+        function toggleAuthPanel() {
+            const panel = document.getElementById('authPanel');
+            panel.classList.toggle('hidden');
         }
 
         async function runQuery() {
@@ -118,37 +117,32 @@
             const output = document.getElementById('output');
             const status = document.getElementById('status');
             
-            // Prepare Custom Headers based on active tab
+            const totpCode = document.getElementById('totpCode').value.trim();
+            const userApiKey = document.getElementById('userApiKey').value.trim();
+
+            // Set up Authentication Headers
             let requestHeaders = { 'Content-Type': 'application/json' };
-            
-            if (currentMode === 'totp') {
-                const code = document.getElementById('totpCode').value.replace(/\s+/g, '');
-                if (code.length !== 6 || isNaN(code)) {
-                    showStatus("Please enter a valid 6-digit Authenticator code.", "error");
-                    return;
-                }
-                requestHeaders['Authorization'] = `Bearer ${code}`;
+            if (totpCode) {
+                requestHeaders['Authorization'] = `Bearer ${totpCode}`;
+            } else if (userApiKey) {
+                requestHeaders['X-API-Key'] = userApiKey;
             } else {
-                const key = document.getElementById('userApiKey').value.trim();
-                if (!key) {
-                    showStatus("Please enter your Google API Key.", "error");
-                    return;
-                }
-                requestHeaders['X-API-Key'] = key;
+                showStatus("Error: Please open ⚙️ API Settings and provide a code or key.", "error");
+                return;
             }
 
+            // UI State
             btn.disabled = true;
-            btn.innerHTML = "Fetching Data...";
+            btn.innerHTML = "Loading...";
             status.classList.add('hidden');
-            output.classList.remove('text-slate-500');
-            output.innerText = "// Connecting to Gateway...";
+            output.innerText = "Fetching...";
 
             const payload = {
                 terms: document.getElementById('terms').value,
                 start: document.getElementById('start').value,
                 end: document.getElementById('end').value,
-                resolution: "week",
-                geo: "US"
+                geo: document.getElementById('geo').value || "US",
+                resolution: "week"
             };
 
             try {
@@ -162,26 +156,118 @@
                 output.innerText = JSON.stringify(data, null, 4);
 
                 if (response.ok) {
-                    showStatus(`Success: Data fetched via ${currentMode === 'totp' ? 'Authenticator' : 'Personal API Key'}.`, "success");
-                    if(currentMode === 'totp') document.getElementById('totpCode').value = '';
+                    showStatus("Data retrieved successfully.", "success");
+                    renderChart(data);
+                    // Clear TOTP code after use for security
+                    if(totpCode) document.getElementById('totpCode').value = '';
                 } else {
                     showStatus("API Error: " + (data.error || "Request failed"), "error");
                 }
             } catch (err) {
-                output.innerText = "";
                 showStatus("Network Error: Could not reach the Gateway.", "error");
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = "Fetch Data";
+                btn.innerHTML = "Explore";
             }
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+            const lines = data.lines || [];
+
+            if (lines.length === 0) return;
+
+            // 1. Find the global maximum value across all terms to normalize to 100
+            let globalMax = 0;
+            lines.forEach(line => {
+                line.points.forEach(point => {
+                    if (point.value > globalMax) globalMax = point.value;
+                });
+            });
+
+            // 2. Format the datasets for Chart.js
+            // Assuming all terms share the same date timeline (standard API behavior)
+            const labels = lines[0].points.map(p => {
+                // Convert Google's "Jan 01 2024" string to a cleaner format if desired, or keep as is
+                return p.date; 
+            });
+
+            const datasets = lines.map((line, index) => {
+                // Normalize data: (value / max) * 100
+                const normalizedData = line.points.map(p => {
+                    return globalMax > 0 ? Math.round((p.value / globalMax) * 100) : 0;
+                });
+
+                return {
+                    label: line.term,
+                    data: normalizedData,
+                    borderColor: chartColors[index % chartColors.length],
+                    backgroundColor: chartColors[index % chartColors.length],
+                    borderWidth: 2,
+                    pointRadius: 1, // small dots like GTrends
+                    pointHoverRadius: 5,
+                    tension: 0.3 // Smooth curves
+                };
+            });
+
+            // 3. Destroy existing chart if running a new query
+            if (trendsChart) {
+                trendsChart.destroy();
+            }
+
+            // 4. Draw the new chart
+            trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100, // Google Trends is always 0-100
+                            grid: { drawBorder: false },
+                            ticks: { stepSize: 25 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 10 }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#000',
+                            bodyColor: '#555',
+                            borderColor: '#ddd',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 4,
+                            usePointStyle: true,
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true, boxWidth: 8 }
+                        }
+                    }
+                }
+            });
         }
 
         function showStatus(msg, type) {
             const el = document.getElementById('status');
             el.innerText = msg;
-            el.className = type === 'success' 
-                ? "mb-4 text-sm font-bold p-4 rounded-lg bg-emerald-100 text-emerald-800 block"
-                : "mb-4 text-sm font-bold p-4 rounded-lg bg-red-100 text-red-800 block";
+            el.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            
+            if (type === 'success') {
+                el.classList.add('bg-green-100', 'text-green-800');
+            } else {
+                el.classList.add('bg-red-100', 'text-red-800');
+            }
         }
     </script>
 </body>
